@@ -6,9 +6,60 @@ Run this after starting Kafka with: docker-compose up -d
 
 from kafka import KafkaConsumer
 from kafka.errors import KafkaError
+import requests
 
-KAFKA_BROKERS = ["localhost:9092"]
-KAFKA_TOPIC = "M2M"
+KAFKA_BROKERS = ["172.18.212.212:9092"]
+KAFKA_TOPIC = "OTA"
+
+API_URL = "http://localhost:18089/api/v2/InferenceData"
+SITE = "K1"
+
+
+def message_post_inferencedata(message):
+    try:
+
+        # Hander from Kafka header list to dict.
+        headers_dict = {
+            k.decode("utf-8") if isinstance(k, bytes) else k: (
+                v.decode("utf-8") if isinstance(v, bytes) else v
+            )
+            for k, v in message.headers
+        }
+
+        # Add site in header.
+        headers_dict["site"] = SITE
+
+        # Prepare m2m_log
+        m2m_log = (
+            message.value.decode("utf-8")
+            if isinstance(message.value, bytes)
+            else str(message.value)
+        )
+
+        payload = {
+            "m2m_list": [
+                {
+                    "m2m_log": m2m_log,
+                    "m2m_meta": headers_dict,
+                }
+            ]
+        }
+
+        headers = {"Content-Type": "application/json"}
+
+        response = requests.post(API_URL, json=payload, headers=headers, timeout=10)
+        response.raise_for_status()
+
+        print(f"✅ Successfully sent to API - Status: {response.status_code}")
+        return True
+
+    except requests.exceptions.RequestException as e:
+        print(f"❌ API request failed: {e}")
+        return False
+    except Exception as e:
+        print(f"❌ Error preparing payload: {e}")
+        return False
+
 
 def consume_m2m_messages():
     try:
@@ -35,6 +86,8 @@ def consume_m2m_messages():
             print(f"   Header: {message.headers}")
 
             print(f"   Value: {message.value}")
+
+            message_post_inferencedata(message)
 
             print("-" * 80)
 
