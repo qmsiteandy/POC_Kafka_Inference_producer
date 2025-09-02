@@ -11,7 +11,7 @@ import string
 
 KAFKA_PRODUCER_VER = "2.3.0.1"
 KAFKA_BROKERS = ["localhost:9092"]
-KAFKA_TOPIC = "M2M"
+KAFKA_TOPIC = "M2M_data"
 
 
 class KafkaProducer:
@@ -47,7 +47,9 @@ class KafkaProducer:
             )
             self._initialized = True
             # logger.info("{} connected to broker: {}, topic: {}".format(self.__class__.__name__, KAFKA_BROKERS, KAFKA_TOPIC))
-            print(f"{self.__class__.__name__} connected to broker: {KAFKA_BROKERS}, topic: {KAFKA_TOPIC}")
+            print(
+                f"{self.__class__.__name__} connected to broker: {KAFKA_BROKERS}, topic: {KAFKA_TOPIC}"
+            )
 
         except ConnectionError as ex:
             raise Exception("{} connect fail: {}".format(ex, KAFKA_BROKERS))
@@ -66,14 +68,24 @@ class KafkaProducer:
             headers = [(k, str(v).encode("utf-8")) for k, v in headers.items()]
 
             # Convert payload to bytes if it's not already
-            payload = json.dumps(payload) if not isinstance(payload, (str, bytes)) else payload
+            payload = (
+                json.dumps(payload)
+                if not isinstance(payload, (str, bytes))
+                else payload
+            )
             payload = payload.encode("utf-8") if isinstance(payload, str) else payload
 
-            future = self.producer.send(topic=KAFKA_TOPIC, headers=headers, value=payload)
+            future = self.producer.send(
+                topic=KAFKA_TOPIC, headers=headers, value=payload
+            )
             try:
                 record_metadata = future.get(timeout=1)
                 print("produce message bytes: {}".format(len(payload)))
-                print("delivered, partition:{}, offset {}".format(record_metadata.partition, record_metadata.offset))
+                print(
+                    "delivered, partition:{}, offset {}".format(
+                        record_metadata.partition, record_metadata.offset
+                    )
+                )
                 return 1
             except KafkaError as err:
                 print("KafkaError: {}".format(err))
@@ -92,7 +104,9 @@ class KafkaProducer:
 
         for data_dict in data_list:
 
-            result = self.produce(headers=data_dict["m2m_meta"], payload=data_dict["m2m_log"])
+            result = self.produce(
+                headers=data_dict["m2m_meta"], payload=data_dict["m2m_log"]
+            )
             if result == 1:
                 count += 1
 
@@ -107,71 +121,78 @@ class KafkaProducer:
 if __name__ == "__main__":
 
     def generate_file_token():
-        return ''.join(random.choices(string.ascii_lowercase + string.digits, k=32))
+        return "".join(random.choices(string.ascii_lowercase + string.digits, k=32))
 
     current_time_ms = int(time.time() * 1000)
     file_token = generate_file_token()
 
-    m2m_list = [{
-        'm2m_log': json.dumps({
-            "DeviceID": "inspect_flow",
-            "DeviceDesc": None,
-            "LogDate": {"$date": current_time_ms},
-            "Message": {
-                "LogType": "VISION",
-                "ErrorCode": "",
-                "StateDesc": "COMPLETION",
-                "WarnLevel": "TRACE",
-                "errorCode": "",
-                "VisionMsg": {
-                    "PDNM": "product0827_1",
-                    "LOT": "lot0827_1_1",
-                    "COD": "cod1",
-                    "STRIP": "strip1",
-                    "GRAIN": "grain1",
-                    "IFID": "",
-                    "CLEEID": [],
-                    "MOD": "model1",
-                    "IFMT": 4,
-                    "IMGNM": "19_21_6598_11147_7_5_00",
-                    "CT": 0,
-                    "PART": "model1",
-                    "PARTN": "part0",
-                    "PRDT": 0,
-                    "CLERID": "HQ-9F_1",
-                    "SWVER": "v0.1",
-                    "SESS": "KINSUS-HQ-UT03-TOP1_17071063134821_001_RH621A020200-0001",
-                    "JR": {
-                        "FR": "P",
-                        "ORIR": "P",
-                        "UH": "sampled",
+    m2m_list = [
+        {
+            "m2m_log": json.dumps(
+                {
+                    "DeviceID": "inspect_flow",
+                    "DeviceDesc": None,
+                    "LogDate": {"$date": current_time_ms},
+                    "Message": {
+                        "LogType": "VISION",
+                        "ErrorCode": "",
+                        "StateDesc": "COMPLETION",
+                        "WarnLevel": "TRACE",
+                        "errorCode": "",
+                        "VisionMsg": {
+                            "PDNM": "product0827_1",
+                            "LOT": "lot0827_1_1",
+                            "COD": "cod1",
+                            "STRIP": "strip1",
+                            "GRAIN": "grain1",
+                            "IFID": "",
+                            "CLEEID": [],
+                            "MOD": "model1",
+                            "IFMT": 4,
+                            "IMGNM": "19_21_6598_11147_7_5_00",
+                            "CT": 0,
+                            "PART": "model1",
+                            "PARTN": "part0",
+                            "PRDT": 0,
+                            "CLERID": "HQ-9F_1",
+                            "SWVER": "v0.1",
+                            "SESS": "KINSUS-HQ-UT03-TOP1_17071063134821_001_RH621A020200-0001",
+                            "JR": {
+                                "FR": "P",
+                                "ORIR": "P",
+                                "UH": "sampled",
+                            },
+                            "IFR": {"inference": [{}, {}]},
+                            "GT": {
+                                "annotation": [
+                                    {"category_id": 2, "category_name": "NA"}
+                                ]
+                            },
+                            "GTR": {"FR": [{"result": "F", "from": "test1"}]},
+                        },
+                        "LogMessage": "<1-None><4-None>",
                     },
-                    "IFR": {"inference": [{}, {}]},
-                    "GT": {"annotation": [{"category_id": 2, "category_name": "NA"}]},
-                    "GTR": {"FR": [{"result": "F", "from": "test1"}]}
-                },
-                "LogMessage": "<1-None><4-None>"
-            }
-        }),
-        'm2m_meta': {
-            'version': '2.3.0.1',
-            'type': 0,
-            'device_id': '',
-            'IP': '',
-            'MAC': '',
-            'seg': 1,
-            'total_seg': 1,
-            'total_sz': 862,
-            'blk_offset': 0,
-            'blk_sz': 862,
-            'name': f'{file_token}.jpg',
-            'ts1': str(time.time()),
-            'ts2': str(time.time()),
-            'prj_token': '656d7f9c67576fcd2ced2252',
-            'token': file_token,
-            'custom_info': '{"MOD": "model1", "LogType": "VISION"}'
+                }
+            ),
+            "m2m_meta": {
+                "version": "2.3.0.1",
+                "type": 0,
+                "device_id": "",
+                "IP": "",
+                "MAC": "",
+                "seg": 1,
+                "total_seg": 1,
+                "total_sz": 862,
+                "blk_offset": 0,
+                "blk_sz": 862,
+                "name": f"{file_token}.jpg",
+                "ts1": str(time.time()),
+                "ts2": str(time.time()),
+                "prj_token": "656d7f9c67576fcd2ced2252",
+                "token": file_token,
+                "custom_info": '{"MOD": "model1", "LogType": "VISION"}',
+            },
         }
-    }
     ]
 
     # Send messages intervally (every 2 seconds, 5 times as an example)
