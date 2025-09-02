@@ -1,0 +1,35 @@
+version: '3.8'
+
+services:
+
+  mongodb:
+    image: mongo:4.4.7
+    container_name: DC-mongodb
+    restart: always
+    ports:
+      - "17017:27017"
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+      - ./devel/db/:/data/db
+      - ./devel/log/:/data/log
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "10"
+
+  postgres:
+    image: postgres:15
+    container_name: DC_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: "pega#1234"
+      POSTGRES_DB: perftracking
+    ports:
+      - "15432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
